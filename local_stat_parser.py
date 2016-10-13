@@ -10,7 +10,7 @@ import time
 def parse_gpu_info_lines(gpu_lines):
     gpu_id = int(gpu_lines[0][1:5])
     gpu = {}
-    fan, temp, cur_w, max_w, cur_mem, max_mem, load = re.search('\| *(\d+)\% *(\d+)C *P[0-9]+ *(\d+|\S+)W* / *(\d+|\S+)W* \| *(\d+)MiB / *(\d+)MiB \| *(\d+|\S+)', gpu_lines[1]).groups()
+    fan, temp, cur_w, max_w, cur_mem, max_mem, load = re.search('\| *(\d+)\% *(\d+)C *\S+ *(\d+|\S+)W* / *(\d+|\S+)W* \| *(\d+)MiB / *(\d+)MiB \| *(\d+|\S+)', gpu_lines[1]).groups()
     gpu['fan'] = fan
     gpu['temp'] = temp
     gpu['cur_pow'] = int(cur_w) if cur_w != 'N/A' else -1
@@ -102,37 +102,81 @@ def parse_gpu_info(runs=20, wait=0.25):
 
     return gpus_info
 
+def parse_cpu_info(runs=5, wait=0.1):
+    cpus = []
+    #For a set of runs
+    for r in  range(runs):
+        cpus_iter = {}
+
+        #Get the memory info
+        mem_info = subprocess.check_output('cat /proc/meminfo | grep --color=no \'Swap\|Mem\|Cached\|Buffers\'', shell=True).decode('UTF-8').split('\n')
+        mem_dict = {}
+        for m in mem_info[:-1]:
+            k,v= re.search('(\S+): *(\d+)',m).groups()
+            mem_dict[k] = v
+        cpus_iter['used_ram'] = 1.0 - (float(mem_dict['Cached'])+float(mem_dict['Buffers'])+float(mem_dict['MemFree']))/float(mem_dict['MemTotal'])
+        cpus_iter['used_swap'] = 1.0 -float( mem_dict['SwapFree'])/float(mem_dict['SwapTotal'])
+
+        #Get set of users with processes
+        pid_info = subprocess.check_output('ps axo user:30', shell=True).decode('UTF-8').split('\n')
+        cpus_iter['users'] = set(pid_info[:-1])
+
+        #Get the cpu usage
+        cpu_info = subprocess.check_output('/usr/bin/top -bn2 -d 2 | grep --color=no \'Cpu(s)\' | tail -1', shell=True).decode('UTF-8')
+        usr_load, sys_load = proc_info = re.search('\%*Cpu\(s\): *(\d+.\d+)[ |\%]us, *(\d+.\d+)', cpu_info).groups()
+        cpus_iter['load'] = (float(usr_load) + float(sys_load))/100.0
+
+        #Store the info and save it.
+        cpus.append(cpus_iter)
+        time.sleep(wait)
+
+    #Summarize
+    cpu_info = cpus[0]
+    for c in cpus[1:]:
+        for s in ['load', 'used_swap', 'used_ram']:
+            cpu_info[s] = max([cpu_info[s] ,c[s]])
+
+        cpu_info['users'] |=  c['users']
+
+    return cpu_info
+
+def parse_machine_info():
+    machine = {}
+
+    #Max memory
+    mem_info = subprocess.check_output('cat /proc/meminfo | grep --color=no MemTotal', shell=True).decode('UTF-8')
+    k,v= re.search('(\S+): *(\d+)',mem_info).groups()
+    machine['memory'] = int(v)//1024
+
+    #CPU info
+    cpu_info = subprocess.check_output('cat /proc/cpuinfo | grep --color=no \'model name\'', shell=True).decode('UTF-8').split('\n')
+    cpu_model = re.search('\S* *: *([\S *]+)',cpu_info[0]).groups()[0]
+    machine['cpu_model'] = '{} (x{})'.format(cpu_model, len(cpu_info)-1)
+
+    #Nvidia driver + GPU Model
+    nvidia_info = subprocess.check_output('nvidia-smi -q | grep --color=no \'Driver Version\|Product Name\|Minor Number\'', shell=True).decode('UTF-8').split('\n')
+    machine['nvidia_version'] = re.search('\S* *: *(\d+.+\d+)',nvidia_info[0]).groups()[0]
+    machine['gpu_models'] = {}
+    for i in range(1,len(nvidia_info)-1,2):
+        gpu_model = re.search('\S* *: *([\S *]+)',nvidia_info[i]).groups()[0]
+        gpu_id = re.search('\S* *: *(\d+)',nvidia_info[i+1]).groups()[0]
+        machine['gpu_models'][gpu_id] = gpu_model
+
+    #Ubuntu variant
+    ubuntu_info = subprocess.check_output('lsb_release -a 2>/dev/null | grep --color=no Description', shell=True).decode('UTF-8')
+    machine['ubuntu_version'] = re.search('\S*:\W*([\S *]+)',ubuntu_info).groups()[0]
+
+    #Kernel version
+    machine['kernel_version'] = subprocess.check_output('cat /proc/version', shell=True).decode('UTF-8')[:-1]
+
+    return machine
 
 def main(argv):
-    print(parse_gpu_info())
-
-
-
-
-'''To store
-General
-* Max Memory
-* Type of CPU
-* nvidia driver
-* Ubuntu variant
-* Kernel version
-* GPU Model (nvidia-smi -q | grep 'Product Name'
-
-
-GPU info
-* max GPU ram usage for each user if supported
-* max GPU processing usage if available
-* GPU Temperature
-
-CPU info
-* max Ram usage
-* max Swap usage
-* max CPU usage
-
-General
-* active users
-'''
-
+    info = {}
+    info['gpu'] = parse_gpu_info()
+    info['cpu'] = parse_cpu_info()
+    info['machine'] = parse_machine_info()
+    print(info)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
