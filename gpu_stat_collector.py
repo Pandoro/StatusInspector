@@ -41,7 +41,7 @@ class RepeatedTimer(object):
 
 
 class InfoFetcher(object):
-    def __init__(self, machine_list, detailed_minute_interval, general_minute_interval, script_destionation, script_location, overwrite_scripts):
+    def __init__(self, machine_list, detailed_minute_interval, general_minute_interval, script_destionation, script_location):
         self.machine_list = machine_list
         self.detailed_minute_interval = detailed_minute_interval
         self.general_minute_interval = general_minute_interval
@@ -49,20 +49,13 @@ class InfoFetcher(object):
         self.script_location = script_location
         self.local_machine = os.uname()[1]
 
-        if overwrite_scripts:
-            print('Pushing fresh script to all machines... '),
-            for m in machine_list:
-                subprocess.check_output('scp -o StrictHostKeyChecking=no {} {}:{}'.format(script_location, m, script_destionation), shell=True)
-            print('Done')
-
         self.lock = threading.Lock()
         self.detailed_scheduler = RepeatedTimer(60*detailed_minute_interval, self.get_all_machine_info, self.machine_list)
         self.general_scheduler = RepeatedTimer(60*general_minute_interval, self.get_all_machine_info, self.machine_list, only_general_info=True)
 
 
     def get_single_machine_info(self, machine, only_general_info=False):
-        #The command checks if the script is in place and if it is missing it will fetch it again and execute it.
-        #TODO
+        #The command checks if the script is in place. If it is missing it will fetch it again and execute it.
         command = ('ssh -o StrictHostKeyChecking=no {} \''.format(machine) +
                             '[ ! -f {} ] && '.format(self.script_destionation) +
                                 'scp {}:{} {}; '.format(self.local_machine, self.script_location, self.script_destionation) +
@@ -95,14 +88,15 @@ class InfoFetcher(object):
 
 
 def main(argv):
-    #Get the config file.
+    #Get all options
     parser = OptionParser()
     parser.add_option('-c','--config', action='store', dest='config_file',
                       help='The config file specifying polling times, db location and machine list. This should be a json file.')
     parser.add_option('-o','--overwrite', action='store_true', dest='overwrite_config_file',
                       help='If this is set, the local stat parsing script is pushed to all machines at the start. Normally it would only be fetched if it was missing.')
-
     (options, args) = parser.parse_args(argv)
+
+    #Force the parameter file "option" ^^;
     if options.config_file is None:
         parser.error("No Config file was provided.")
 
@@ -113,18 +107,23 @@ def main(argv):
     detailed_minute_interval = config['general']['detailed_minute_interval']
     general_minute_interval = config['general']['general_minute_interval']
     local_script_destination = config['general']['local_script_destination']
+    script_location = os.path.join(os.path.dirname(os.path.abspath(__file__)),'local_stat_parser.py')
+    script_destionation = os.path.join(local_script_destination,'local_stat_parser.py')
+
+    #Mainly here so we can quickly overwrite all the scripts if it needs to be redeployed.
+    if options.overwrite_config_file:
+        print('Pushing fresh script to all machines... '),
+        for m in machine_list:
+            subprocess.check_output('scp -o StrictHostKeyChecking=no {} {}:{}'.format(script_location, m, script_destionation), shell=True)
+        print('Done')
 
     #Hook up with the mongodb
     # TODO
 
-    #prepare all the machines by copying the script.
-    script_location = os.path.join(os.path.dirname(os.path.abspath(__file__)),'local_stat_parser.py')
-    script_destionation = os.path.join(local_script_destination,'local_stat_parser.py')
-
     #Create an info fetcher that does all the work
-    fetcher = InfoFetcher(machine_list, detailed_minute_interval, general_minute_interval, script_destionation, script_location, options.overwrite_config_file)
+    fetcher = InfoFetcher(machine_list, detailed_minute_interval, general_minute_interval, script_destionation, script_location)
 
-    #Loop
+    #Loop. What would be a good value here?
     while True:
         time.sleep(60)
 

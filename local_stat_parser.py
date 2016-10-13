@@ -11,6 +11,15 @@ import json
 
 
 def parse_gpu_info_lines(gpu_lines):
+    """Parses the gpu info from 2 lines cut out from the nvidia-smi result.
+
+    Args:
+        gpu_lines (list of strings): Two nvidi-smi lines representing current gpu info.
+
+    Returns:
+        Tuple: Gpu id ('gpuX') and a dict with gpu info.
+    """
+
     gpu_id = 'gpu{}'.format(int(gpu_lines[0][1:5]))
     gpu = {}
     fan, temp, cur_w, max_w, cur_mem, max_mem, load = re.search('\| *(\d+)\% *(\d+)C *\S+ *(\d+|\S+)W* / *(\d+|\S+)W* \| *(\d+)MiB / *(\d+)MiB \| *(\d+|\S+)', gpu_lines[1]).groups()
@@ -26,6 +35,16 @@ def parse_gpu_info_lines(gpu_lines):
 
 
 def parse_gpu_proc_lines(proc_lines):
+    """Parses the information from the nvidia-smi process lines (if available).
+
+    Args:
+        proc_lines (list of strings): All the nvidi-smi output lines with process info.
+
+    Returns:
+        Tuple: A dict with showing the detailed process info support of the gpu
+               and a list of process info.
+    """
+
     support ={}
     processes = []
     for l in proc_lines:
@@ -34,10 +53,20 @@ def parse_gpu_proc_lines(proc_lines):
         if proc_info[1] != '':
             processes.append(('gpu{}'.format(int(proc_info[0])), int(proc_info[1]), int(proc_info[3])))
 
-    return support, processes
+    return (support, processes)
 
 
 def parse_gpu_info(runs=20, wait=0.25):
+    """Performs several runs of parsing the GPU info from nvidia-smi.
+
+    Args:
+        runs (int, optional): Number of runs
+        wait (float, optional): Seconds to wait between the runs.
+
+    Returns:
+        Dict: Compiled GPU info across the several runs.
+    """
+
     gpus = []
     #For a set of runs
     for r in  range(runs):
@@ -107,6 +136,16 @@ def parse_gpu_info(runs=20, wait=0.25):
 
 
 def parse_cpu_info(runs=5, wait=0.1):
+    """Performs several runs of parsing the CPU info.
+
+    Args:
+        runs (int, optional): Number of runs
+        wait (float, optional): Seconds to wait between the runs.
+
+    Returns:
+        Dict: Compiled CPU info across the several runs.
+    """
+
     cpus = []
     #For a set of runs
     for r in  range(runs):
@@ -149,6 +188,12 @@ def parse_cpu_info(runs=5, wait=0.1):
 
 
 def parse_machine_info():
+    """Parses general machine info about hardware and software.
+
+    Returns:
+        Dict representing the machine info.
+    """
+
     machine = {}
 
     #Max memory
@@ -181,6 +226,14 @@ def parse_machine_info():
 
 
 def main(argv):
+    """Executes the parsing of all the info.
+
+    Args:
+        argv : List of arguments. '-g' specifies only the general info is provided.
+               Otherwise, only the detailed info is provided. This info is printed
+               as a json string.
+
+    """
     parser = OptionParser()
     parser.add_option('-g','--general', action='store_true', dest='return_general_info', default=False,
                       help='When general machine info will be returned instead of detailed cpu and gpu info.')
