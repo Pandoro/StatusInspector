@@ -9,6 +9,7 @@ import re
 import time
 import json
 
+
 def parse_gpu_info_lines(gpu_lines):
     gpu_id = 'gpu{}'.format(int(gpu_lines[0][1:5]))
     gpu = {}
@@ -23,6 +24,7 @@ def parse_gpu_info_lines(gpu_lines):
 
     return (gpu_id,gpu)
 
+
 def parse_gpu_proc_lines(proc_lines):
     support ={}
     processes = []
@@ -33,7 +35,6 @@ def parse_gpu_proc_lines(proc_lines):
             processes.append(('gpu{}'.format(int(proc_info[0])), int(proc_info[1]), int(proc_info[3])))
 
     return support, processes
-
 
 
 def parse_gpu_info(runs=20, wait=0.25):
@@ -104,6 +105,7 @@ def parse_gpu_info(runs=20, wait=0.25):
 
     return gpus_info
 
+
 def parse_cpu_info(runs=5, wait=0.1):
     cpus = []
     #For a set of runs
@@ -145,6 +147,7 @@ def parse_cpu_info(runs=5, wait=0.1):
 
     return cpu_info
 
+
 def parse_machine_info():
     machine = {}
 
@@ -176,6 +179,7 @@ def parse_machine_info():
 
     return machine
 
+
 def main(argv):
     parser = OptionParser()
     parser.add_option('-g','--general', action='store_true', dest='return_general_info', default=False,
@@ -193,6 +197,7 @@ def main(argv):
 
     #Compact encoding in json.
     print(json.dumps(info, separators=(',',':')))
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

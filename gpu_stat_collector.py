@@ -9,9 +9,8 @@ import threading
 import subprocess
 
 
-
-
 #As shown here: http://stackoverflow.com/questions/2398661/schedule-a-repeating-event-in-python-3
+#Extended to run the task directly at the start once (execute_at_start=True).
 class RepeatedTimer(object):
     def __init__(self, interval, function, *args, **kwargs):
         self._timer     = None
@@ -60,6 +59,7 @@ class InfoFetcher(object):
         self.detailed_scheduler = RepeatedTimer(60*detailed_minute_interval, self.get_all_machine_info, self.machine_list)
         self.general_scheduler = RepeatedTimer(60*general_minute_interval, self.get_all_machine_info, self.machine_list, only_general_info=True)
 
+
     def get_single_machine_info(self, machine, only_general_info=False):
         #The command checks if the script is in place and if it is missing it will fetch it again and execute it.
         #TODO
@@ -95,7 +95,6 @@ class InfoFetcher(object):
 
 
 def main(argv):
-
     #Get the config file.
     parser = OptionParser()
     parser.add_option('-c','--config', action='store', dest='config_file',
@@ -128,6 +127,7 @@ def main(argv):
     #Loop
     while True:
         time.sleep(60)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
