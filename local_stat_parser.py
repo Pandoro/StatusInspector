@@ -2,17 +2,19 @@
 
 # This script will run for a few seconds and parse important info about the system.
 
+from optparse import OptionParser
 import sys
 import subprocess
 import re
 import time
+import json
 
 def parse_gpu_info_lines(gpu_lines):
-    gpu_id = int(gpu_lines[0][1:5])
+    gpu_id = 'gpu{}'.format(int(gpu_lines[0][1:5]))
     gpu = {}
     fan, temp, cur_w, max_w, cur_mem, max_mem, load = re.search('\| *(\d+)\% *(\d+)C *\S+ *(\d+|\S+)W* / *(\d+|\S+)W* \| *(\d+)MiB / *(\d+)MiB \| *(\d+|\S+)', gpu_lines[1]).groups()
-    gpu['fan'] = fan
-    gpu['temp'] = temp
+    gpu['fan'] = int(fan)
+    gpu['temp'] = int(temp)
     gpu['cur_pow'] = int(cur_w) if cur_w != 'N/A' else -1
     gpu['max_pow'] = int(max_w) if max_w != 'N/A' else -1
     gpu['cur_mem'] = int(cur_mem) if cur_mem != 'N/A' else -1
@@ -26,9 +28,9 @@ def parse_gpu_proc_lines(proc_lines):
     processes = []
     for l in proc_lines:
         proc_info = re.search('\| *(\d+) *(\d*) *[CG]* *(\S+) *(\d*)', l).groups()
-        support[int(proc_info[0])] = not proc_info[1] == ''
+        support['gpu{}'.format(int(proc_info[0]))] = not proc_info[1] == ''
         if proc_info[1] != '':
-            processes.append((int(proc_info[0]), int(proc_info[1]), int(proc_info[3])))
+            processes.append(('gpu{}'.format(int(proc_info[0])), int(proc_info[1]), int(proc_info[3])))
 
     return support, processes
 
@@ -138,6 +140,9 @@ def parse_cpu_info(runs=5, wait=0.1):
 
         cpu_info['users'] |=  c['users']
 
+    #Because json doesn't do sets
+    cpu_info['users'] = list(cpu_info['users'])
+
     return cpu_info
 
 def parse_machine_info():
@@ -172,11 +177,22 @@ def parse_machine_info():
     return machine
 
 def main(argv):
+    parser = OptionParser()
+    parser.add_option('-g','--general', action='store_true', dest='return_general_info', default=False,
+                      help='When general machine info will be returned instead of detailed cpu and gpu info.')
+
+    (options, args) = parser.parse_args(argv)
+
     info = {}
-    info['gpu'] = parse_gpu_info()
-    info['cpu'] = parse_cpu_info()
-    info['machine'] = parse_machine_info()
-    print(info)
+    if not options.return_general_info:
+        info['gpu'] = parse_gpu_info()
+        info['cpu'] = parse_cpu_info()
+        pass
+    else:
+        info['machine'] = parse_machine_info()
+
+    #Compact encoding in json.
+    print(json.dumps(info, separators=(',',':')))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
