@@ -1,17 +1,16 @@
 #!/usr/bin/env python
-# coding: utf-8
 
-import subprocess 
+import subprocess
 
 def get_mem_info(machine='localhost', average_over_runs=5, sleep_between=0.25):
    info = subprocess.check_output(('ssh -o StrictHostKeyChecking=no {} '+
                                         '\'for i in {}; do; '+
                                         'ps axo user:20,pid; '+
-                                        'nvidia-smi; '+ 
+                                        'nvidia-smi; '+
                                         'echo gpu-parsing-block-end ; '+
                                         'sleep {}; '+
                                         'done;\'').format(machine, ' '.join([str(i) for i in range(average_over_runs)]),sleep_between), shell=True)
-   
+
    #Bring in the right format.
    info = info.decode('UTF-8')
 
@@ -45,3 +44,5 @@ def get_mem_info(machine='localhost', average_over_runs=5, sleep_between=0.25):
 
 
 get_mem_info('hund')
+import os
+print(os.path.dirname(os.path.abspath(__file__)))
