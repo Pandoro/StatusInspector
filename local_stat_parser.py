@@ -162,7 +162,7 @@ def parse_cpu_info(runs=5, wait=0.1):
 
         #Get set of users with processes
         pid_info = subprocess.check_output('ps axo user:30', shell=True).decode('UTF-8').split('\n')
-        cpus_iter['users'] = set(pid_info[:-1])
+        cpus_iter['users'] = set(pid_info[1:-1])
 
         #Get the cpu usage
         cpu_info = subprocess.check_output('/usr/bin/top -bn2 -d 2 | grep --color=no \'Cpu(s)\' | tail -1', shell=True).decode('UTF-8')
