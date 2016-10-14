@@ -7,6 +7,8 @@ import json
 import time
 import threading
 import subprocess
+import getpass
+import pymongo
 
 
 #As shown here: http://stackoverflow.com/questions/2398661/schedule-a-repeating-event-in-python-3
@@ -94,6 +96,8 @@ def main(argv):
                       help='The config file specifying polling times, db location and machine list. This should be a json file.')
     parser.add_option('-o','--overwrite', action='store_true', dest='overwrite_config_file',
                       help='If this is set, the local stat parsing script is pushed to all machines at the start. Normally it would only be fetched if it was missing.')
+    parser.add_option('-p','--passwd', action='store', dest='passwd',
+                  help='If provided this password is used instead of querying the password at runtime.')
     (options, args) = parser.parse_args(argv)
 
     #Force the parameter file "option" ^^;
@@ -109,16 +113,97 @@ def main(argv):
     local_script_destination = config['general']['local_script_destination']
     script_location = os.path.join(os.path.dirname(os.path.abspath(__file__)),'local_stat_parser.py')
     script_destionation = os.path.join(local_script_destination,'local_stat_parser.py')
+    mongodb_path = config['mongo_db']['database_path']
+    mongodb_port = config['mongo_db']['port']
+    connection_retries = config['mongo_db']['connection_retries']
+    connection_waits = config['mongo_db']['connection_waits']
+
+    #Check if the mongodb path exists.
+    if not os.path.exists(mongodb_path):
+        os.makedirs(mongodb_path)
+
+    #Check if a mongo is running on our port already. If that is the case, the user needs to stop that first.
+    running = False
+    try:
+        mongo_client = pymongo.MongoClient(host='localhost', port=mongodb_port)
+        running = True
+    except pymongo.errors.ConnectionFailure:
+        pass
+    if running:
+        print('A MongoDB is running on port {}. We always start our own. Choose a different port or kill the other MongoDB.'.format(mongodb_port))
+        exit()
+
+    #Start the actual MongoDB server
+    mongod = subprocess.Popen(['mongod', '--port', str(mongodb_port), '--dbpath', mongodb_path, '--auth'], stdout=subprocess.PIPE)
+
+    #We allow for some extra waiting time and try connecting several times
+    tries = 1
+    connected = False
+    while tries <= connection_retries:
+        print('Connecting to MongoDB[:{}], try {}/{}...'.format(mongodb_port,tries,connection_retries)),
+        sys.stdout.flush()
+        time.sleep(connection_waits)
+        try:
+            mongo_client = pymongo.MongoClient(host='localhost', port=mongodb_port)
+        except pymongo.errors.ConnectionFailure:
+            tries +=1
+            print('failed')
+            continue
+        print('succeeded')
+        connected = True
+        break
+    if not connected:
+        mongod.terminate()
+        print('Failed to connect to database. Exiting!')
+        exit()
+
+    #Now we have to find out if this was a new MongoDB or if it is an old one.
+    #If we can access it without a password, this was freshly setup.
+    pwd_protected = True
+    try:
+        mongo_client['admin'].collection_names()
+        pwd_protected = False
+    except pymongo.errors.OperationFailure:
+        pass
+
+    if not pwd_protected:
+        #Let's set a password.
+        match = False
+        while not match:
+            new_mongo_password = getpass.getpass('Created a new MongoDB. Please enter a password: ')
+            new_mongo_password2 = getpass.getpass('Please re-enter the password: ')
+            match = (new_mongo_password == new_mongo_password2)
+            if not match:
+                print('Passwords didn\'t match.')
+
+        mongo_client['admin'].add_user('admin', new_mongo_password)
+        print('Password set, reconnecting now.')
+        mongo_client.close()
+        mongo_client = pymongo.MongoClient(host='localhost', port=mongodb_port)
+
+
+    #Get the mongo password one way or the other
+    if options.passwd is None:
+        mongo_password = getpass.getpass('Please enter the MongoDB password: ')
+    else:
+        mongo_password = options.passwd
+
+    #Authenticate.
+    try:
+        mongo_client['admin'].authenticate('admin',mongo_password)
+        print('Password correct, connected to the MongoDB.')
+    except pymongo.errors.OperationFailure:
+        print('Apparently that was the wrong password! Exiting!')
+        mongod.terminate()
+        exit()
 
     #Mainly here so we can quickly overwrite all the scripts if it needs to be redeployed.
     if options.overwrite_config_file:
         print('Pushing fresh script to all machines... '),
+        sys.stdout.flush()
         for m in machine_list:
             subprocess.check_output('scp -o StrictHostKeyChecking=no {} {}:{}'.format(script_location, m, script_destionation), shell=True)
         print('Done')
-
-    #Hook up with the mongodb
-    # TODO
 
     #Create an info fetcher that does all the work
     fetcher = InfoFetcher(machine_list, detailed_minute_interval, general_minute_interval, script_destionation, script_location)
