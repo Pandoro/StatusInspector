@@ -9,6 +9,7 @@ import threading
 import subprocess
 import getpass
 import pymongo
+import signal
 
 
 #As shown here: http://stackoverflow.com/questions/2398661/schedule-a-repeating-event-in-python-3
@@ -62,16 +63,27 @@ class InfoFetcher(object):
                             '[ ! -f {} ] && '.format(self.script_destionation) +
                                 'scp {}:{} {}; '.format(self.local_machine, self.script_location, self.script_destionation) +
                             'python {}{}\''.format(self.script_destionation, ' -g' if only_general_info else ''))
-        info_raw = subprocess.check_output(command, shell=True).decode('UTF-8')
 
-        #Decode the json string.
-        info = json.loads(info_raw)
 
-        #Write it to the MongoDB
-        self.lock.acquire()
-        #TODO
-        print(machine, info)
-        self.lock.release()
+        proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (out, error) = proc.communicate()
+        #TODO log the errors.
+
+        #If we stopped the programm (ctrl+c) the process will have died instantly and no output is returned.
+        if out != '':
+            info_raw = out.decode('UTF-8')
+
+            #Decode the json string.
+            info = json.loads(info_raw)
+
+            #Write it to the MongoDB
+            self.lock.acquire()
+            #TODO
+            print(machine, info)
+            self.lock.release()
+        else:
+            #signal somewhere there was a failure!
+            pass
 
 
     def get_all_machine_info(self, machine_list, only_general_info=False):
@@ -87,6 +99,52 @@ class InfoFetcher(object):
 
         for t in thread_list:
             t.join()
+
+class SigintHandler(object):
+    def __init__(self):
+        self.mongo_log = None
+        self.mongod_proc = None
+        self.infofetcher_lock = None
+
+    def set_mongo_log(self, log):
+        self.mongo_log = log
+
+    def set_mongod_proc(self, proc):
+        self.mongod_proc = proc
+
+    def set_infofetcher_lock(self, lock):
+        self.infofetcher_lock = lock
+
+    def signal_handler(self, sig, frame):
+        print('\n\n')
+        print('Interrupt received. Shutting down...')
+
+        if self.infofetcher_lock is not None:
+            #Try to acquire the lock from the infoFectcher since if this is not possible something is writing to the databse.
+            print('Waiting for processes to finish flushing to the databse...'),
+            sys.stdout.flush()
+            self.infofetcher_lock.aquire()
+            print('Done')
+            #We keep it to block other stuff form starting new connections.
+
+        if self.mongod_proc is not None:
+            #Wait for the mongod process to stop.
+            print('Stopping the MongoDB...'),
+            sys.stdout.flush()
+            self.mongod_proc.send_signal(signal.SIGINT)
+            self.mongod_proc.communicate()
+            print('Done')
+
+        if self.mongo_log is not None:
+            #Close the log file
+            print('Closing the log file...'),
+            sys.stdout.flush()
+            self.mongo_log.close()
+            print('Done')
+
+        print('All done!')
+        print('Goodbye!')
+        sys.exit(0)
 
 
 def main(argv):
@@ -118,6 +176,11 @@ def main(argv):
     connection_retries = config['mongo_db']['connection_retries']
     connection_waits = config['mongo_db']['connection_waits']
 
+    #Make sure we can exit nicely if a sigint is received.
+    sigint_handler = SigintHandler()
+    signal.signal(signal.SIGINT, sigint_handler.signal_handler)
+
+
     #Check if the mongodb path exists.
     if not os.path.exists(mongodb_path):
         os.makedirs(mongodb_path)
@@ -134,7 +197,10 @@ def main(argv):
         exit()
 
     #Start the actual MongoDB server
-    mongod = subprocess.Popen(['mongod', '--port', str(mongodb_port), '--dbpath', mongodb_path, '--auth'], stdout=subprocess.PIPE)
+    mongo_log = file('/tmp/testlog.txt', 'w')
+    sigint_handler.set_mongo_log(mongo_log)
+    mongod = subprocess.Popen(['mongod', '--port', str(mongodb_port), '--dbpath', mongodb_path, '--auth'], preexec_fn=os.setpgrp, stdout=mongo_log, stderr=subprocess.STDOUT)
+    sigint_handler.set_mongod_proc(mongod)
 
     #We allow for some extra waiting time and try connecting several times
     tries = 1
@@ -183,7 +249,8 @@ def main(argv):
 
 
     #Get the mongo password one way or the other
-    if options.passwd is None:
+    #Force the entry if it was a new database
+    if options.passwd is None or not pwd_protected:
         mongo_password = getpass.getpass('Please enter the MongoDB password: ')
     else:
         mongo_password = options.passwd
@@ -207,11 +274,10 @@ def main(argv):
 
     #Create an info fetcher that does all the work
     fetcher = InfoFetcher(machine_list, detailed_minute_interval, general_minute_interval, script_destionation, script_location)
+    sigint_handler.set_infofetcher_lock(fetcher.lock)
 
-    #Loop. What would be a good value here?
-    while True:
-        time.sleep(60)
-
+    #Loop.
+    signal.pause()
 
 if __name__ == "__main__":
     main(sys.argv[1:])
