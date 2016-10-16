@@ -204,6 +204,8 @@ def main(argv):
     sigint_handler.set_mongo_log(mongo_log)
 
     #Start the actual MongoDB server
+    #preexec_fn discussion here:
+    #See http://stackoverflow.com/questions/5045771/python-how-to-prevent-subprocesses-from-receiving-ctrl-c-control-c-sigint?rq=1
     mongod = subprocess.Popen(['mongod', '--port', str(mongodb_port), '--dbpath', mongodb_path, '--auth'], preexec_fn=os.setpgrp, stdout=mongo_log, stderr=subprocess.STDOUT)
     sigint_handler.set_mongod_proc(mongod)
 
