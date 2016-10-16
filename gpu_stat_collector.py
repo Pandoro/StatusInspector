@@ -44,7 +44,8 @@ class RepeatedTimer(object):
 
 
 class InfoFetcher(object):
-    def __init__(self, machine_list, detailed_minute_interval, general_minute_interval, script_destionation, script_location):
+    def __init__(self, mongo_client, machine_list, detailed_minute_interval, general_minute_interval, script_destionation, script_location):
+        self.mongo_client = mongo_client
         self.machine_list = machine_list
         self.detailed_minute_interval = detailed_minute_interval
         self.general_minute_interval = general_minute_interval
@@ -280,7 +281,7 @@ def main(argv):
         print('Done')
 
     #Create an info fetcher that does all the work
-    fetcher = InfoFetcher(machine_list, detailed_minute_interval, general_minute_interval, script_destionation, script_location)
+    fetcher = InfoFetcher(mongo_client,machine_list, detailed_minute_interval, general_minute_interval, script_destionation, script_location)
     sigint_handler.set_infofetcher_lock(fetcher.lock)
 
     #Loop.
