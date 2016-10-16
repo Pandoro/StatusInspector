@@ -172,6 +172,7 @@ def main(argv):
     script_location = os.path.join(os.path.dirname(os.path.abspath(__file__)),'local_stat_parser.py')
     script_destionation = os.path.join(local_script_destination,'local_stat_parser.py')
     mongodb_path = config['mongo_db']['database_path']
+    mongodb_output_log = config['mongo_db']['database_log']
     mongodb_port = config['mongo_db']['port']
     connection_retries = config['mongo_db']['connection_retries']
     connection_waits = config['mongo_db']['connection_waits']
@@ -196,9 +197,13 @@ def main(argv):
         print('A MongoDB is running on port {}. We always start our own. Choose a different port or kill the other MongoDB.'.format(mongodb_port))
         exit()
 
-    #Start the actual MongoDB server
-    mongo_log = file('/tmp/testlog.txt', 'w')
+    #Open a log file for the MongoDB output.
+    if not os.path.exists(os.path.dirname(mongodb_output_log)):
+        os.makedirs(os.path.dirname(mongodb_output_log))
+    mongo_log = file(mongodb_output_log, 'a')
     sigint_handler.set_mongo_log(mongo_log)
+
+    #Start the actual MongoDB server
     mongod = subprocess.Popen(['mongod', '--port', str(mongodb_port), '--dbpath', mongodb_path, '--auth'], preexec_fn=os.setpgrp, stdout=mongo_log, stderr=subprocess.STDOUT)
     sigint_handler.set_mongod_proc(mongod)
 
