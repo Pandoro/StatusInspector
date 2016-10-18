@@ -124,7 +124,7 @@ class SigintHandler(object):
             #Try to acquire the lock from the infoFectcher since if this is not possible something is writing to the databse.
             print('Waiting for processes to finish flushing to the databse...'),
             sys.stdout.flush()
-            self.infofetcher_lock.aquire()
+            self.infofetcher_lock.acquire()
             print('Done')
             #We keep it to block other stuff form starting new connections.
 
