@@ -201,6 +201,10 @@ def parse_machine_info():
     k,v= re.search('(\S+): *(\d+)',mem_info).groups()
     machine['memory'] = int(v)//1024
 
+    mem_info = subprocess.check_output('cat /proc/meminfo | grep --color=no SwapTotal', shell=True).decode('UTF-8')
+    k,v= re.search('(\S+): *(\d+)',mem_info).groups()
+    machine['swap'] = int(v)//1024
+
     #CPU info
     cpu_info = subprocess.check_output('cat /proc/cpuinfo | grep --color=no \'model name\'', shell=True).decode('UTF-8').split('\n')
     cpu_model = re.search('\S* *: *([\S *]+)',cpu_info[0]).groups()[0]
