@@ -10,6 +10,7 @@ import subprocess
 import getpass
 import pymongo
 import signal
+import datetime
 
 
 #As shown here: http://stackoverflow.com/questions/2398661/schedule-a-repeating-event-in-python-3
@@ -57,13 +58,43 @@ class InfoFetcher(object):
         self.detailed_scheduler = RepeatedTimer(60*detailed_minute_interval, self.get_all_machine_info, self.machine_list)
         self.general_scheduler = RepeatedTimer(60*general_minute_interval, self.get_all_machine_info, self.machine_list, only_general_info=True)
 
-
-    def get_single_machine_info(self, machine, only_general_info=False):
+    def get_single_machine_base_info(self, machine):
         #The command checks if the script is in place. If it is missing it will fetch it again and execute it.
         command = ('ssh -o StrictHostKeyChecking=no {} \''.format(machine) +
                             '[ ! -f {} ] && '.format(self.script_destionation) +
                                 'scp {}:{} {}; '.format(self.local_machine, self.script_location, self.script_destionation) +
-                            'python {}{}\''.format(self.script_destionation, ' -g' if only_general_info else ''))
+                            'python {} -g\''.format(self.script_destionation))
+
+        proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (out, error) = proc.communicate()
+        #TODO log the errors.
+
+        #If we stopped the programm (ctrl+c) the process will have died instantly and no output is returned.
+        if out != '':
+            info_raw = out.decode('UTF-8')
+
+            #Decode the json string.
+            info = json.loads(info_raw)
+
+        else:
+            #TODO: signal somewhere there was a failure!
+            info = {}
+            info['error'] = error.decode('UTF-8')
+
+        #Write it to the MongoDB
+        self.lock.acquire()
+        info['machine'] = machine
+        info['date'] = datetime.datetime.utcnow()
+        self.mongo_client['data']['machine_info'].insert(info)
+        self.lock.release()
+
+
+    def get_single_machine_load_info(self, machine):
+        #The command checks if the script is in place. If it is missing it will fetch it again and execute it.
+        command = ('ssh -o StrictHostKeyChecking=no {} \''.format(machine) +
+                            '[ ! -f {} ] && '.format(self.script_destionation) +
+                                'scp {}:{} {}; '.format(self.local_machine, self.script_location, self.script_destionation) +
+                            'python {}\''.format(self.script_destionation))
 
 
         proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -77,14 +108,17 @@ class InfoFetcher(object):
             #Decode the json string.
             info = json.loads(info_raw)
 
-            #Write it to the MongoDB
-            self.lock.acquire()
-            #TODO
-            print(machine, info)
-            self.lock.release()
         else:
-            #signal somewhere there was a failure!
-            pass
+            #TODO: signal somewhere there was a failure!
+            info = {}
+            info['error'] = error.decode('UTF-8')
+
+        #Write it to the MongoDB
+        self.lock.acquire()
+        info['machine'] = machine
+        info['date'] = datetime.datetime.utcnow()
+        self.mongo_client['data']['load_info'].insert(info)
+        self.lock.release()
 
 
     def get_all_machine_info(self, machine_list, only_general_info=False):
@@ -92,7 +126,11 @@ class InfoFetcher(object):
         thread_list = []
 
         for m in machine_list:
-            thread_list.append(threading.Thread(target=self.get_single_machine_info, args=(m,), kwargs={'only_general_info' : only_general_info}))
+            if only_general_info:
+                thread_list.append(threading.Thread(target=self.get_single_machine_base_info, args=(m,)))
+            else:
+                thread_list.append(threading.Thread(target=self.get_single_machine_load_info, args=(m,)))
+
             thread_list[-1].setDaemon(True)
 
         for t in thread_list:
