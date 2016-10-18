@@ -76,17 +76,46 @@ class InfoFetcher(object):
             #Decode the json string.
             info = json.loads(info_raw)
 
+            #Write it to the MongoDB
+            self.lock.acquire()
+
+            cursor = self.mongo_client['data']['machine_info'].find({'machine' : machine, 'error' : False}).limit(1).sort('date', pymongo.DESCENDING)
+            info['changes'] = {}
+            if cursor.count() > 0:
+                last_data = cursor[0]
+                info['changes']['memory'] = info['configuration']['memory'] != last_data['configuration']['memory']
+                info['changes']['swap'] = info['configuration']['swap'] != last_data['configuration']['swap']
+                info['changes']['cpu_model'] = info['configuration']['cpu_model'] != last_data['configuration']['cpu_model']
+                info['changes']['nvidia_version'] = info['configuration']['nvidia_version'] != last_data['configuration']['nvidia_version']
+                info['changes']['gpu_models'] = info['configuration']['gpu_models'] != last_data['configuration']['gpu_models']
+                info['changes']['ubuntu_version'] = info['configuration']['ubuntu_version'] != last_data['configuration']['ubuntu_version']
+                info['changes']['kernel_version'] = info['configuration']['kernel_version'] != last_data['configuration']['kernel_version']
+            else:
+                info['changes']['memory'] =False
+                info['changes']['swap'] =False
+                info['changes']['cpu_model'] =False
+                info['changes']['nvidia_versi'] =False
+                info['changes']['gpu_models'] =False
+                info['changes']['ubuntu_version'] =False
+                info['changes']['kernel_version'] =False
+
+            info['error'] = False
+            info['machine'] = machine
+            info['date'] = datetime.datetime.utcnow()
+            self.mongo_client['data']['machine_info'].insert(info)
+            self.lock.release()
+
         else:
             #TODO: signal somewhere there was a failure!
             info = {}
             info['error'] = error.decode('UTF-8')
+            info['machine'] = machine
+            info['date'] = datetime.datetime.utcnow()
 
-        #Write it to the MongoDB
-        self.lock.acquire()
-        info['machine'] = machine
-        info['date'] = datetime.datetime.utcnow()
-        self.mongo_client['data']['machine_info'].insert(info)
-        self.lock.release()
+            #Write it to the MongoDB
+            self.lock.acquire()
+            self.mongo_client['data']['machine_info'].insert(info)
+            self.lock.release()
 
 
     def get_single_machine_load_info(self, machine):
