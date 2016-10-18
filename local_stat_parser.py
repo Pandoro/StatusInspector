@@ -246,7 +246,7 @@ def main(argv):
         info['cpu'] = parse_cpu_info()
         pass
     else:
-        info['machine'] = parse_machine_info()
+        info['configuration'] = parse_machine_info()
 
     #Compact encoding in json.
     print(json.dumps(info, separators=(',',':')))
