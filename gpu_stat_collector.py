@@ -101,7 +101,7 @@ class InfoFetcher(object):
 
             info['error'] = False
             info['machine'] = machine
-            info['date'] = datetime.datetime.utcnow()
+            info['date'] = datetime.datetime.now()
             self.mongo_client['data']['machine_info'].insert(info)
             self.lock.release()
 
@@ -110,7 +110,7 @@ class InfoFetcher(object):
             info = {}
             info['error'] = error.decode('UTF-8')
             info['machine'] = machine
-            info['date'] = datetime.datetime.utcnow()
+            info['date'] = datetime.datetime.now()
 
             #Write it to the MongoDB
             self.lock.acquire()
@@ -145,7 +145,7 @@ class InfoFetcher(object):
         #Write it to the MongoDB
         self.lock.acquire()
         info['machine'] = machine
-        info['date'] = datetime.datetime.utcnow()
+        info['date'] = datetime.datetime.now()
         self.mongo_client['data']['load_info'].insert(info)
         self.lock.release()
 
