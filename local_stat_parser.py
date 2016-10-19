@@ -94,6 +94,8 @@ def parse_gpu_info(runs=20, wait=0.25):
         while '+' == info[block_boundary+2][0]:
             gpu_id, gpu = parse_gpu_info_lines(info[block_boundary:block_boundary+2])
             gpus_iter[gpu_id] = gpu
+            gpus_iter[gpu_id]['proc_info_support'] = True # will be wet to False automaticallly if parsed later on.
+            gpus_iter[gpu_id]['proc_info'] = {}
             block_boundary += 3
 
         #Jump to the process info
@@ -104,9 +106,6 @@ def parse_gpu_info(runs=20, wait=0.25):
             gpus_iter[g]['proc_info_support'] = support
 
         for gpu_id, pid, mem_usage in proc_info:
-            if 'proc_info' not in gpus_iter[gpu_id].keys():
-                gpus_iter[gpu_id]['proc_info'] = {}
-
             user = pid_to_user[pid]
             if user not in gpus_iter[gpu_id].keys():
                 gpus_iter[gpu_id]['proc_info'][user] = mem_usage
@@ -217,7 +216,7 @@ def parse_machine_info():
     for i in range(1,len(nvidia_info)-1,2):
         gpu_model = re.search('\S* *: *([\S *]+)',nvidia_info[i]).groups()[0]
         gpu_id = re.search('\S* *: *(\d+)',nvidia_info[i+1]).groups()[0]
-        machine['gpu_models'][gpu_id] = gpu_model
+        machine['gpu_models']['gpu'+gpu_id] = gpu_model
 
     #Ubuntu variant
     ubuntu_info = subprocess.check_output('lsb_release -a 2>/dev/null | grep --color=no Description', shell=True).decode('UTF-8')
