@@ -16,7 +16,7 @@ import datetime
 #As shown here: http://stackoverflow.com/questions/2398661/schedule-a-repeating-event-in-python-3
 #Extended to run the task directly at the start once (execute_at_start=True).
 class RepeatedTimer(object):
-    def __init__(self, interval, function, *args, **kwargs):
+    def __init__(self, interval, execute_at_start, function, *args, **kwargs):
         self._timer     = None
         self.function   = function
         self.interval   = interval
@@ -24,18 +24,18 @@ class RepeatedTimer(object):
         self.kwargs     = kwargs
         self.is_running = False
         self.start()
+        if execute_at_start:
+            self.function(*self.args, **self.kwargs)
 
     def _run(self):
         self.is_running = False
         self.start()
         self.function(*self.args, **self.kwargs)
 
-    def start(self, execute_at_start=True):
+    def start(self):
         if not self.is_running:
             self._timer = threading.Timer(self.interval, self._run)
             self._timer.setDaemon(True)
-            if execute_at_start:
-                self.function(*self.args, **self.kwargs)
             self._timer.start()
             self.is_running = True
 
@@ -55,8 +55,8 @@ class InfoFetcher(object):
         self.local_machine = os.uname()[1]
 
         self.lock = threading.Lock()
-        self.detailed_scheduler = RepeatedTimer(60*detailed_minute_interval, self.get_all_machine_info, self.machine_list)
-        self.general_scheduler = RepeatedTimer(60*general_minute_interval, self.get_all_machine_info, self.machine_list, only_general_info=True)
+        self.detailed_scheduler = RepeatedTimer(60*detailed_minute_interval, True, self.get_all_machine_info, self.machine_list)
+        self.general_scheduler = RepeatedTimer(60*general_minute_interval, True, self.get_all_machine_info, self.machine_list, only_general_info=True)
 
     def get_single_machine_base_info(self, machine):
         #The command checks if the script is in place. If it is missing it will fetch it again and execute it.
@@ -124,7 +124,6 @@ class InfoFetcher(object):
                             '[ ! -f {} ] && '.format(self.script_destionation) +
                                 'scp {}:{} {}; '.format(self.local_machine, self.script_location, self.script_destionation) +
                             'python {}\''.format(self.script_destionation))
-
 
         proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (out, error) = proc.communicate()
