@@ -156,10 +156,10 @@ def parse_cpu_info(runs=5, wait=0.1):
         for m in mem_info[:-1]:
             k,v= re.search('(\S+): *(\d+)',m).groups()
             mem_dict[k] = v
-        cpus_iter['max_ram'] = int(mem_dict['MemTotal'])
-        cpus_iter['used_ram'] = cpus_iter['max_ram'] - (int(mem_dict['Cached'])+int(mem_dict['Buffers'])+int(mem_dict['MemFree']))
-        cpus_iter['max_swap'] = int(mem_dict['SwapTotal'])
-        cpus_iter['used_swap'] = cpus_iter['max_swap'] - int( mem_dict['SwapFree'])
+        cpus_iter['max_ram'] = int(mem_dict['MemTotal']) // 1024
+        cpus_iter['used_ram'] = cpus_iter['max_ram'] - (int(mem_dict['Cached'])+int(mem_dict['Buffers'])+int(mem_dict['MemFree'])) // 1024
+        cpus_iter['max_swap'] = int(mem_dict['SwapTotal']) // 1024
+        cpus_iter['used_swap'] = cpus_iter['max_swap'] - int( mem_dict['SwapFree']) // 1024
 
 
         #Get set of users with processes
