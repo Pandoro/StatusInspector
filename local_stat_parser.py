@@ -156,8 +156,11 @@ def parse_cpu_info(runs=5, wait=0.1):
         for m in mem_info[:-1]:
             k,v= re.search('(\S+): *(\d+)',m).groups()
             mem_dict[k] = v
-        cpus_iter['used_ram'] = 1.0 - (float(mem_dict['Cached'])+float(mem_dict['Buffers'])+float(mem_dict['MemFree']))/float(mem_dict['MemTotal'])
-        cpus_iter['used_swap'] = 1.0 -float( mem_dict['SwapFree'])/float(mem_dict['SwapTotal'])
+        cpus_iter['max_ram'] = int(mem_dict['MemTotal'])
+        cpus_iter['used_ram'] = cpus_iter['max_ram'] - (int(mem_dict['Cached'])+int(mem_dict['Buffers'])+int(mem_dict['MemFree']))
+        cpus_iter['max_swap'] = int(mem_dict['SwapTotal'])
+        cpus_iter['used_swap'] = cpus_iter['max_swap'] - int( mem_dict['SwapFree'])
+
 
         #Get set of users with processes
         pid_info = subprocess.check_output('ps axo user:30', shell=True).decode('UTF-8').split('\n')
@@ -166,7 +169,7 @@ def parse_cpu_info(runs=5, wait=0.1):
         #Get the cpu usage
         cpu_info = subprocess.check_output('/usr/bin/top -bn2 -d 2 | grep --color=no \'Cpu(s)\' | tail -1', shell=True).decode('UTF-8')
         usr_load, sys_load = proc_info = re.search('\%*Cpu\(s\): *(\d+.\d+)[ |\%]us, *(\d+.\d+)', cpu_info).groups()
-        cpus_iter['load'] = (float(usr_load) + float(sys_load))/100.0
+        cpus_iter['load'] = (float(usr_load) + float(sys_load))
 
         #Store the info and save it.
         cpus.append(cpus_iter)
