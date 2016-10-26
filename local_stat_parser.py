@@ -48,7 +48,7 @@ def parse_gpu_proc_lines(proc_lines):
     support ={}
     processes = []
     for l in proc_lines:
-        proc_info = re.search('\| *(\d+) *(\d*) *[CG]* *(\S+) *(\d*)', l).groups()
+        proc_info = re.search('\| *(\d+) *(\d*) *[CG]* *([\S|\s]*?)\s+(\d*)MiB', l).groups()
         support['gpu{}'.format(int(proc_info[0]))] = not proc_info[1] == ''
         if proc_info[1] != '':
             processes.append(('gpu{}'.format(int(proc_info[0])), int(proc_info[1]), int(proc_info[3])))
