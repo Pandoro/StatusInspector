@@ -239,20 +239,24 @@ def main(argv):
     """
     parser = OptionParser()
     parser.add_option('-g','--general', action='store_true', dest='return_general_info', default=False,
-                      help='When general machine info will be returned instead of detailed cpu and gpu info.')
+                      help='When set, general machine info will be returned instead of detailed cpu and gpu info.')
+    parser.add_option('-p','--pretty', action='store_true', dest='print_pretty', default=False,
+                      help='When set, the json will be printed in a less compact but more readable format.')
 
     (options, args) = parser.parse_args(argv)
 
     info = {}
-    if not options.return_general_info:
+    if options.return_general_info:
+        info['configuration'] = parse_machine_info()
+    else:
         info['gpu'] = parse_gpu_info()
         info['cpu'] = parse_cpu_info()
-        pass
-    else:
-        info['configuration'] = parse_machine_info()
 
     #Compact encoding in json.
-    print(json.dumps(info, separators=(',',':')))
+    if options.print_pretty:
+        print(json.dumps(info, sort_keys=True, indent=4, separators=(',', ': ')))
+    else:
+        print(json.dumps(info, separators=(',',':')))
 
 
 if __name__ == "__main__":
