@@ -346,6 +346,13 @@ def main(argv):
             subprocess.check_output('scp -o StrictHostKeyChecking=no {} {}:{}'.format(script_location, m, script_destionation), shell=True)
         print('Done')
 
+    #Update the list of machines we have info about in the database.
+    for m in machine_list:
+        cursor = mongo_client['data']['machine_list'].find({'machine' : m})
+        if cursor.count() == 0:
+            #New machine add it to the list.
+            mongo_client['data']['machine_list'].insert({'machine' : m})
+
     #Create an info fetcher that does all the work
     fetcher = InfoFetcher(mongo_client,machine_list, detailed_minute_interval, general_minute_interval, script_destionation, script_location)
     sigint_handler.set_infofetcher_lock(fetcher.lock)
