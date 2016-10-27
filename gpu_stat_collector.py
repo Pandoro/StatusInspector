@@ -54,6 +54,11 @@ class InfoFetcher(object):
         self.script_location = script_location
         self.local_machine = os.uname()[1]
 
+        self.user_list = []
+        cursor = mongo_client['data']['user_list'].find()
+        for user in cursor:
+            self.user_list.append(user['user'])
+
         self.lock = threading.Lock()
         self.detailed_scheduler = RepeatedTimer(60*detailed_minute_interval, True, self.get_all_machine_info, self.machine_list)
         self.general_scheduler = RepeatedTimer(60*general_minute_interval, True, self.get_all_machine_info, self.machine_list, only_general_info=True)
@@ -144,6 +149,14 @@ class InfoFetcher(object):
 
         #Write it to the MongoDB
         self.lock.acquire()
+
+        for u in info.get('cpu',{'users' : []}).get('users', []):
+            if not u in self.user_list:
+                self.user_list.append(u)
+                new_users.append(u)
+        for u in new_users:
+            self.mongo_client['data']['user_list'].insert({'user' : u})
+
         info['machine'] = machine
         info['date'] = datetime.datetime.now()
         self.mongo_client['data']['load_info'].insert(info)
