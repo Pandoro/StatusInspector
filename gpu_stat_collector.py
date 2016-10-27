@@ -353,12 +353,15 @@ def main(argv):
         exit()
 
     #Mainly here so we can quickly overwrite all the scripts if it needs to be redeployed.
-    if options.overwrite_config_file:
-        print('Pushing fresh script to all machines... '),
+    if options.deploy_parsing_file:
+        sys.stdout.write('Pushing fresh script to all machines [{:20}] {:2.0f}%'.format('',0))
         sys.stdout.flush()
-        for m in machine_list:
+        for i,m in enumerate(machine_list):
             subprocess.check_output('scp -o StrictHostKeyChecking=no {} {}:{}'.format(script_location, m, script_destionation), shell=True)
-        print('Done')
+            sys.stdout.write('\r')
+            sys.stdout.write('Pushing fresh script to all machines [{:20}] {:2.0f}%'.format('='*(20*(i+1)/len(machine_list)), 100.0*(i+1)/len(machine_list)))
+            sys.stdout.flush()
+        sys.stdout.write('\n')
 
     #Update the list of machines we have info about in the database.
     for m in machine_list:
@@ -367,6 +370,7 @@ def main(argv):
             #New machine add it to the list.
             mongo_client['data']['machine_list'].insert({'machine' : m})
 
+    print('Starting the information fetching!')
     #Create an info fetcher that does all the work
     fetcher = InfoFetcher(mongo_client,machine_list, detailed_minute_interval, general_minute_interval, script_destionation, script_location)
     sigint_handler.set_infofetcher_lock(fetcher.lock)
