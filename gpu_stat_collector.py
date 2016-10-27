@@ -129,7 +129,8 @@ class InfoFetcher(object):
         (out, error) = proc.communicate()
         #TODO log the errors.
 
-        #If we stopped the programm (ctrl+c) the process will have died instantly and no output is returned.
+        #If we stopped the program (ctrl+c) the process will have died instantly and no output is returned.
+        new_users = []
         if out != '':
             info_raw = out.decode('UTF-8')
 
