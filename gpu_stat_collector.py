@@ -233,7 +233,7 @@ def main(argv):
     parser = OptionParser()
     parser.add_option('-c','--config', action='store', dest='config_file',
                       help='The config file specifying polling times, db location and machine list. This should be a json file.')
-    parser.add_option('-o','--overwrite', action='store_true', dest='overwrite_config_file',
+    parser.add_option('-d','--deploy', action='store_true', dest='deploy_parsing_file',
                       help='If this is set, the local stat parsing script is pushed to all machines at the start. Normally it would only be fetched if it was missing.')
     parser.add_option('-p','--passwd', action='store', dest='passwd',
                   help='If provided this password is used instead of querying the password at runtime.')
