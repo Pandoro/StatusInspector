@@ -3,6 +3,7 @@
 from optparse import OptionParser
 import sys
 import os
+import re
 import json
 import time
 import threading
@@ -12,6 +13,20 @@ import pymongo
 import signal
 import datetime
 
+proc_lines = [
+'|    0       914    G   compiz                                         218MiB |',
+'|    0      7017    G   ...ves-passed-by-fd --v8-snapshot-passed-by-    94MiB |',
+'|    0      7893    C   python                                        1642MiB |',
+'|    0     22343    C   ...e/hermans/sci-envs/sci-env3/bin/python3.5   135MiB |',
+'|    0     32500    G   /usr/bin/X                                     496MiB |',
+'|    0                  Not Supported                                         |',
+'|    1     21570    C   /home/bereda/sci-env/bin/python3.4            3002MiB |']
+
+for l in proc_lines:
+    res = re.search('\| *(?P<gpu_id>\d+) *(?P<pid>\d*) *[CG]* *([\S|\s]*?)\s+(?P<mem>\d*)[MiB|\s\|]', l)
+    print(res.group('gpu_id'),res.group('pid'),res.group('mem'))
+
+exit()
 
 mongo_client = pymongo.MongoClient(host='localhost', port=27018)
 mongo_client['admin'].authenticate('admin','test123')
@@ -21,9 +36,9 @@ machines = []
 for x_i in x:
     machines.append(x_i['machine'])
 
-x = mongo_client['data']['user_list'].find()
-for x_i in x:
-    print(x_i['user'])
+#x = mongo_client['data']['user_list'].find()
+#for x_i in x:
+#    print(x_i['user'])
 
 max_info = 5
 
@@ -40,7 +55,6 @@ for m in machines:
         data = None
         try:
             data = mongo_client['data']['machine_info'].find({'machine' : x_i['machine']}).limit(1).sort('date', pymongo.DESCENDING)
-            print(g)
             data = data[0]['configuration']['gpu_models']
         except:
             pass
