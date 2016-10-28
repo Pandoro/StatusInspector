@@ -141,6 +141,7 @@ class InfoFetcher(object):
 
             #Decode the json string.
             info = json.loads(info_raw)
+            info['error'] = False
 
         else:
             #TODO: signal somewhere there was a failure!
