@@ -190,6 +190,28 @@ def parse_cpu_info(runs=5, wait=0.1):
     return cpu_info
 
 
+def parse_disk_info():
+    """Parses disk info on the machine.
+
+    Returns:
+        Dict representing the disk info.
+    """
+
+    disk_info = subprocess.check_output('df -T /work /', shell=True).decode('UTF-8').split('\n')
+    disk_dict = {}
+    for d in disk_info[1:-1]: #Skip header and last empty line.
+        disk = re.search('(?P<dev>\S+) *(?P<type>\S+) *(?P<size>\d+) *(?P<used>\d+) *(\d+) *(\S+) *(?P<mount>\S+)', d)
+        dev = disk.group('dev')
+        disk_dict[dev] = {}
+        disk_dict[dev]['type'] = disk.group('type')
+        disk_dict[dev]['mount'] = disk.group('mount')
+        disk_dict[dev]['used'] = int(disk.group('used')) // 1024
+        disk_dict[dev]['size'] = int(disk.group('size')) // 1024
+
+
+    return disk_dict
+
+
 def parse_machine_info():
     """Parses general machine info about hardware and software.
 
@@ -255,6 +277,7 @@ def main(argv):
     else:
         info['gpu'] = parse_gpu_info()
         info['cpu'] = parse_cpu_info()
+        info['disk'] = parse_disk_info()
 
     #Compact encoding in json.
     if options.print_pretty:
