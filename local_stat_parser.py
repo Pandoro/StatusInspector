@@ -95,7 +95,7 @@ def parse_gpu_info(runs=20, wait=0.25):
         while '+' == info[block_boundary+2][0]:
             gpu_id, gpu = parse_gpu_info_lines(info[block_boundary:block_boundary+2])
             gpus_iter[gpu_id] = gpu
-            gpus_iter[gpu_id]['proc_info_support'] = True # will be wet to False automaticallly if parsed later on.
+            gpus_iter[gpu_id]['proc_info_support'] = True # will be wet to False automatically if parsed later on.
             gpus_iter[gpu_id]['proc_info'] = {}
             block_boundary += 3
 
@@ -108,7 +108,7 @@ def parse_gpu_info(runs=20, wait=0.25):
 
         for gpu_id, pid, mem_usage in proc_info:
             user = pid_to_user[pid]
-            if user not in gpus_iter[gpu_id].keys():
+            if user not in gpus_iter[gpu_id]['proc_info'].keys():
                 gpus_iter[gpu_id]['proc_info'][user] = mem_usage
             else:
                 gpus_iter[gpu_id]['proc_info'][user] += mem_usage
