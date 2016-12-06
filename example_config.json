@@ -1,0 +1,18 @@
+{
+    "general": {
+        "detailed_minute_interval" : 5,
+        "general_minute_interval"  : 1440,
+        "local_script_destination" : "/tmp/"
+    },
+    "mongo_db" : {
+        "database_path"      : "/home/username/stats_db",
+        "database_log"       : "/home/username/stats_db/custom_db_output.log",
+        "port"               : 27018,
+        "connection_retries" : 120,
+        "connection_waits"   : 0.5
+    },
+    "machine_list" : [ "localhost",
+                       "machine2",
+                       "machine3",
+                       "machine4"]
+}
