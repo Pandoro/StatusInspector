@@ -63,7 +63,7 @@ if __name__ == '__main__':
                     print('-'*80)
                     parser = v[k]()
                     res = parser.parse()
-                    print(sc.json.dumps(res, sort_keys=True, indent=4, separators=(',', ': ')))
+                    print(sc.json.dumps(res, sort_keys=True, indent=2, separators=(',', ': ')))
 
                 except NotImplementedError:
                     failed.append(k)
