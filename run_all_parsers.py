@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import StatusCollector as sc
 
 from optparse import OptionParser
