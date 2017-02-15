@@ -1,14 +1,19 @@
 import StatusCollector as sc
 
-import pynvml
+try:
+    import pynvml
+except ImportError:
+    pynvml = None
 
 class GpuParser(sc.Parser):
     def __init__(self):
-        try:
-            pynvml.nvmlInit()
-            self.nvml_initialized = True
-        except pynvml.NVMLError_LibraryNotFound:
-            self.nvml_initialized = False
+        self.nvml_initialized = False
+        if pynvml is not None:
+            try:
+                pynvml.nvmlInit()
+                self.nvml_initialized = True
+            except pynvml.NVMLError_LibraryNotFound:
+                pass
 
     def __del__(self):
         if self.nvml_initialized:
@@ -32,5 +37,9 @@ class GpuParser(sc.Parser):
 
             # Aggregate the values over some runs.
         else:
-            print('Cannot load driver')
+            if pynvml is not None:
+                print('Cannot load driver')
+            else:
+                print('pynvml missing, please install')
+
         # Return the json
