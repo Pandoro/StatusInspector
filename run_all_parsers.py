@@ -23,3 +23,6 @@ if __name__ == '__main__':
         print('Problems detected for:')
         for f in failed:
             print(f)
+
+#TODO
+#Add option to only run exactly one, list all possible etc.
