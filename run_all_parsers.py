@@ -32,7 +32,7 @@ if __name__ == '__main__':
         #We only print the list.
         print("Available parsers:")
         for p in parsers:
-            print(p)
+            print('{:15}'.format(p) + '  -  ' + sc.Parsers.__dict__[p]().description())
     else:
         if options.parsers is not None:
             #Only a subset was requested, filter those out.

@@ -15,6 +15,9 @@ class GpuParser(sc.Parser):
             except pynvml.NVMLError_LibraryNotFound:
                 pass
 
+    def description(self):
+        return 'Parse the GPU usage.'
+
     def __del__(self):
         if self.nvml_initialized:
             pynvml.nvmlShutdown()

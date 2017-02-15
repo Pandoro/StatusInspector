@@ -2,5 +2,7 @@ import StatusCollector as sc
 
 class LoginParser(sc.Parser):
     def __init__(self):
-        print('No Logins found')
-        print('testing')
+        pass
+
+    def description(self):
+        return 'Parse a list of logged in users.'

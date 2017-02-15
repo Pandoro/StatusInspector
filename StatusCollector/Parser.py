@@ -4,3 +4,6 @@ class Parser(object):
 
     def parse(self):
         raise NotImplementedError
+
+    def description(self):
+        return 'Description missing'
