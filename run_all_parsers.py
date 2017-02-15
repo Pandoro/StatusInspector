@@ -52,18 +52,23 @@ if __name__ == '__main__':
 
         #Loop over all requested/available parsers and execute them
         if len(parsers) > 0:
-            print('Running all available parsers...\n')
+            print('\nRunning all available parsers...')
             v = sc.Parsers.__dict__ #Get all possible fields.
             failed = []
             total = len(parsers)
             for k in parsers:
                 try:
+                    print('='*80)
+                    print(k)
+                    print('-'*80)
                     parser = v[k]()
-                    parser.parse()
+                    res = parser.parse()
+                    print(sc.json.dumps(res, sort_keys=True, indent=4, separators=(',', ': ')))
+
                 except NotImplementedError:
                     failed.append(k)
                     print('The implementation of this class is incomplete.')
-                print('\n')
+                print('='*80+'\n')
 
             #Report on finished/failed runs.
             print('Finished running all parsers.\n'+
@@ -72,6 +77,7 @@ if __name__ == '__main__':
                 print('Problems detected for:')
                 for f in failed:
                     print(f)
+                print('')
 
         #Print info about unavailable parsers.
         if len(requested_parsers) > 0:
