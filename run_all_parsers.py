@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-import StatusCollector as sc
+import StatusInspector as stasi
 
 from optparse import OptionParser
 import sys
 
 def get_all_parsers():
     parsers = []
-    v = sc.Parsers.__dict__ #Get all possible fields.
+    v = stasi.Parsers.__dict__ #Get all possible fields.
     for k in sorted(v.keys()):
         #Only use find the ones we specifically added.
         if k[:2] != '__':
@@ -32,7 +32,7 @@ if __name__ == '__main__':
         #We only print the list.
         print("Available parsers:")
         for p in parsers:
-            print('{:15}'.format(p) + '  -  ' + sc.Parsers.__dict__[p]().description())
+            print('{:15}'.format(p) + '  -  ' + stasi.Parsers.__dict__[p]().description())
     else:
         if options.parsers is not None:
             #Only a subset was requested, filter those out.
@@ -53,7 +53,7 @@ if __name__ == '__main__':
         #Loop over all requested/available parsers and execute them
         if len(parsers) > 0:
             print('\nRunning all available parsers...')
-            v = sc.Parsers.__dict__ #Get all possible fields.
+            v = stasi.Parsers.__dict__ #Get all possible fields.
             failed = []
             total = len(parsers)
             for k in parsers:
@@ -63,7 +63,7 @@ if __name__ == '__main__':
                     print('-'*80)
                     parser = v[k]()
                     res = parser.parse()
-                    print(sc.json.dumps(res, sort_keys=True, indent=2, separators=(',', ': ')))
+                    print(stasi.json.dumps(res, sort_keys=True, indent=2, separators=(',', ': ')))
 
                 except NotImplementedError:
                     failed.append(k)

@@ -1,4 +1,4 @@
-import StatusCollector as sc
+import StatusInspector as stasi
 
 try:
     import pynvml
@@ -7,7 +7,7 @@ except ImportError:
 
 import time
 
-class GpuParser(sc.Parser):
+class GpuParser(stasi.Parser):
     def __init__(self):
         self.nvml_initialized = False
         if pynvml is not None:
@@ -76,8 +76,8 @@ class GpuParser(sc.Parser):
 
         # GPU memory info
         gpu_mem = pynvml.nvmlDeviceGetMemoryInfo(handle)
-        res['memory_cur'] = gpu_mem.used/sc.BtoMB #Convert Bytes to MB
-        res['memory_max'] = gpu_mem.total/sc.BtoMB
+        res['memory_cur'] = gpu_mem.used/stasi.BtoMB #Convert Bytes to MB
+        res['memory_max'] = gpu_mem.total/stasi.BtoMB
 
         # GPU temperature
         res['temp'] = pynvml.nvmlDeviceGetTemperature(handle, 0)
@@ -92,8 +92,8 @@ class GpuParser(sc.Parser):
         try:
             proc_g = pynvml.nvmlDeviceGetGraphicsRunningProcesses(handle) # Could be merged, but let's keep it.
             proc_c = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
-            res['proc'] = [(p_i.pid, sc.utils.pid_to_username(p_i.pid), int(p_i.usedGpuMemory)/sc.BtoMB,'g') for p_i in proc_g]
-            res['proc'] += [(p_i.pid, sc.utils.pid_to_username(p_i.pid), int(p_i.usedGpuMemory)/sc.BtoMB,'c') for p_i in proc_c]
+            res['proc'] = [(p_i.pid, stasi.utils.pid_to_username(p_i.pid), int(p_i.usedGpuMemory)/stasi.BtoMB,'g') for p_i in proc_g]
+            res['proc'] += [(p_i.pid, stasi.utils.pid_to_username(p_i.pid), int(p_i.usedGpuMemory)/stasi.BtoMB,'c') for p_i in proc_c]
         except pynvml.NVMLError_NotSupported:
             res['proc'] = None
 

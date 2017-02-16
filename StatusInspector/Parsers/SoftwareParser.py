@@ -1,6 +1,6 @@
-import StatusCollector as sc
+import StatusInspector as stasi
 
-class SoftwareParser(sc.Parser):
+class SoftwareParser(stasi.Parser):
     def __init__(self):
         pass
 

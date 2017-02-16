@@ -1,6 +1,6 @@
-import StatusCollector as sc
+import StatusInspector as stasi
 
-class DiskParser(sc.Parser):
+class DiskParser(stasi.Parser):
     def __init__(self):
         pass
 
