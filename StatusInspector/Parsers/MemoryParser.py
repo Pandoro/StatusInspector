@@ -65,5 +65,6 @@ class MemoryParser(stasi.Parser):
                     uid_to_mem[k][uid].append(mem)
 
             user_to_mem[k] = {stasi.utils.uid_to_username(uid) : self.aggregation_function(mem)/stasi.constants.KBtoMB for uid, mem in uid_to_mem[k].items()}
+            user_to_mem['total_'+k] = sum(user_to_mem[k].values())
 
         return {'memory' : user_to_mem}
