@@ -47,7 +47,7 @@ class GpuParser(stasi.Parser):
                     time.sleep(self.ms_between_runs/1000.0)
 
             # Aggregate the values over some runs.
-            res['gpus'] = [self.aggregate_gpu_info(r) for r in run_results]
+            res['data'] = [self.aggregate_gpu_info(r) for r in run_results]
 
         else:
             if pynvml is not None:
@@ -55,12 +55,13 @@ class GpuParser(stasi.Parser):
             else:
                 res['error'] = 'pynvml missing'
 
-        return {'Gpu' : res}
+        return res
 
     def parse_single_gpu(self, gpu_index):
         res = {}
         # Get the actual GPU handle.
         handle = pynvml.nvmlDeviceGetHandleByIndex(gpu_index)
+        res['index'] = gpu_index
         res['name'] = pynvml.nvmlDeviceGetName(handle)
 
         # Fan speed

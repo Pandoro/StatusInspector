@@ -95,4 +95,4 @@ class MemoryParser(stasi.Parser):
         user_to_mem['swap_used'] = self.aggregation_function(swap_used)/stasi.constants.KBtoMB
         user_to_mem['swap'] = self.aggregation_function(swap)/stasi.constants.KBtoMB
 
-        return {'memory' : user_to_mem}
+        return {'data' : user_to_mem}
