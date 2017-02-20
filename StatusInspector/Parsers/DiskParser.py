@@ -29,7 +29,3 @@ class DiskParser(stasi.Parser):
                     disk_usage.append(d)
 
         return {'data' : disk_usage}
-
-#Log mountpoint, type, used, size
-#Mount info from /proc/mounts
-#size info from https://docs.python.org/2/library/os.html#os.statvfs ?
