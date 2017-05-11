@@ -65,7 +65,7 @@ class MemoryParser(stasi.Parser):
             run_stats.append(uid_to_mem)
 
             if r != self.runs-1:
-                # Pause inbetween runs
+                # Pause in between runs
                 time.sleep(self.ms_between_runs/1000.0)
 
         #Aggregate the info
@@ -94,5 +94,9 @@ class MemoryParser(stasi.Parser):
         user_to_mem['ram'] = self.aggregation_function(ram)/stasi.constants.KBtoMB
         user_to_mem['swap_used'] = self.aggregation_function(swap_used)/stasi.constants.KBtoMB
         user_to_mem['swap'] = self.aggregation_function(swap)/stasi.constants.KBtoMB
+
+        #TODO
+        #Rewrite this into ram, swap tuples to save some space. Remember to add 0.0 to swap for some users.
+        #Furthermore, consider rounding at a KB level. The shown float precision is not true anyways.
 
         return {'data' : user_to_mem}
