@@ -15,14 +15,21 @@ class DiskParser(stasi.Parser):
             for l in f:
                 l = l.split(' ')
                 if l[2] in self.types_to_parse:
-                    #Get the actual data
-                    usage = os.statvfs(l[1])
-                    block_size = usage.f_frsize
-
-                    #Format it in the way we want it to be.
                     d = {}
                     d['mount_point'] = l[1]
                     d['type'] = l[2]
+
+                    #Get the actual data
+                    try:
+                        usage = os.statvfs(l[1])
+                    except OSError as err:
+                        print(err)
+                        d['error'] = ' : '.join([str(e) for e in err.args])
+                        disk_usage.append(d)
+                        continue
+
+                    #Format it in the way we want it to be.
+                    block_size = usage.f_frsize
                     d['size'] = block_size*usage.f_blocks/stasi.constants.BtoMB
                     d['used'] = d['size'] - block_size*usage.f_bfree/stasi.constants.BtoMB
                     d['file_count'] = usage.f_files
