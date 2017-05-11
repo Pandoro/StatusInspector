@@ -36,7 +36,7 @@ if __name__ == '__main__':
     else:
         if options.parsers is not None:
             #Only a subset was requested, filter those out.
-            requested_parsers = options.parsers.split(',')
+            requested_parsers = options.parsers.replace(' ', '').split(',')
             found = []
             for r in requested_parsers[::-1]:
                 rl = r.lower()
